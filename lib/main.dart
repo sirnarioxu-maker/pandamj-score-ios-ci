@@ -48,7 +48,11 @@ class ScoreApi {
     req.headers.set(HttpHeaders.acceptHeader, 'application/json');
     req.headers.set(HttpHeaders.contentTypeHeader, 'application/json; charset=utf-8');
     if (_cookie.isNotEmpty) req.headers.set(HttpHeaders.cookieHeader, _cookie);
-    if (body != null) req.write(jsonEncode(body));
+    if (body != null) {
+      final bytes = utf8.encode(jsonEncode(body));
+      req.contentLength = bytes.length;
+      req.add(bytes);
+    }
     final res = await req.close().timeout(const Duration(seconds: 20));
     final setCookie = res.headers.value(HttpHeaders.setCookieHeader);
     if (setCookie != null) _cookie = setCookie.split(';').first;
