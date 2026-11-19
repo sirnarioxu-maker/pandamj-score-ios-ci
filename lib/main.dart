@@ -100,6 +100,17 @@ class ScoreData {
   final List<Map<String, dynamic>> logs;
 }
 
+/// The server currently exposes SQLite INTEGER flags. Keep all screens and
+/// toggle actions on one conversion path so `1` is never mistaken for false.
+bool isActiveFlag(dynamic value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    return const {'1', 'true', 'yes', 'on'}.contains(value.trim().toLowerCase());
+  }
+  return false;
+}
+
 class ScoreApp extends StatelessWidget {
   const ScoreApp({super.key});
   @override Widget build(BuildContext context) => MaterialApp(
@@ -241,7 +252,7 @@ class _HomePageState extends State<HomePage> {
     final all = ScoreApi._items(d);
     final q = search.text.trim();
     final items = all.where((x) => q.isEmpty || '${x['uid']} ${x['note'] ?? ''}'.contains(q)).toList();
-    final enabled = all.where((x) => x['enabled'] == true || x['enabled'] == 1).length;
+    final enabled = all.where((x) => isActiveFlag(x['enabled'])).length;
     final total = all.fold<num>(0, (a, x) => a + _num(x['total']));
     return RefreshIndicator(onRefresh: _refresh, child: ListView(padding: const EdgeInsets.fromLTRB(14, 8, 14, 100), children: [
       GridView.count(
@@ -285,7 +296,7 @@ class _HomePageState extends State<HomePage> {
     for (final x in days) { if ('${x['date']}' == today) td = x; }
     final morning = Map<String, dynamic>.from((td?['morning'] as Map?) ?? {});
     final afternoon = Map<String, dynamic>.from((td?['afternoon'] as Map?) ?? {});
-    final enabled = item['enabled'] == true || item['enabled'] == 1;
+    final enabled = isActiveFlag(item['enabled']);
     return Card(margin: const EdgeInsets.symmetric(vertical: 6), child: Padding(padding: const EdgeInsets.all(15), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -337,7 +348,7 @@ class _HomePageState extends State<HomePage> {
       if (items.isEmpty) const _Empty(icon: Icons.badge_outlined, text: '还没有发卡')
       else ...items.map((item) {
         final uid = '${item['uid']}';
-        final enabled = item['enabled'] == true || item['enabled'] == 1;
+        final enabled = isActiveFlag(item['enabled']);
         return Card(margin: const EdgeInsets.symmetric(vertical: 6), child: ListTile(
           contentPadding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
           leading: CircleAvatar(backgroundColor: (enabled ? green : red).withValues(alpha: .14), child: Icon(Icons.person, color: enabled ? green : red)),
@@ -360,8 +371,8 @@ class _HomePageState extends State<HomePage> {
     final issued = data?.issued ?? [];
     final waiting = (data?.requests ?? []).where((r) {
       final uid = '${r['uid']}';
-      final allowed = r['allowed'] == true || r['allowed'] == 1;
-      final active = issued.any((x) => '${x['uid']}' == uid && (x['enabled'] == true || x['enabled'] == 1));
+      final allowed = isActiveFlag(r['allowed']);
+      final active = issued.any((x) => '${x['uid']}' == uid && isActiveFlag(x['enabled']));
       return !allowed && !active;
     }).toList();
     return RefreshIndicator(onRefresh: _refresh, child: ListView(padding: const EdgeInsets.fromLTRB(14, 8, 14, 100), children: [
@@ -466,4 +477,3 @@ class _ErrorView extends StatelessWidget {
     Text(error, textAlign: TextAlign.center), const SizedBox(height: 18), FilledButton.icon(onPressed: retry, icon: const Icon(Icons.refresh), label: const Text('重新连接')),
   ])));
 }
-

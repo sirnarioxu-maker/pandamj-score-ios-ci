@@ -2,6 +2,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pandamj_score/main.dart';
 
 void main() {
+  test('normalizes SQLite JSON flags used by the card API', () {
+    expect(isActiveFlag(true), isTrue);
+    expect(isActiveFlag(1), isTrue);
+    expect(isActiveFlag('1'), isTrue);
+    expect(isActiveFlag(false), isFalse);
+    expect(isActiveFlag(0), isFalse);
+    expect(isActiveFlag('0'), isFalse);
+  });
   test('ships both score backends', () {
     expect(backends.length, 2);
     expect(backends[0].url, contains('74.82.221.117'));
