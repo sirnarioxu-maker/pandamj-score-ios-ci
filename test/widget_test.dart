@@ -1,0 +1,16 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:pandamj_score/main.dart';
+
+void main() {
+  test('ships both score backends', () {
+    expect(backends.length, 2);
+    expect(backends[0].url, contains('74.82.221.117'));
+    expect(backends[1].url, contains('102.134.34.160'));
+  });
+
+  testWidgets('renders the native scoring shell', (tester) async {
+    await tester.pumpWidget(const ScoreApp());
+    await tester.pump();
+    expect(find.text('熊猫麻将记分'), findsOneWidget);
+  });
+}

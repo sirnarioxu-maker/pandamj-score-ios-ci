@@ -1,0 +1,63 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "lib/**"
+      - "ios/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - ".github/workflows/ios-ipa.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    name: Flutter iOS unsigned IPA
+    runs-on: macos-15-intel
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.50.0"
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Build iOS app
+        run: flutter build ios --release --no-codesign
+
+      - name: Package unsigned IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d build/ios/iphoneos/Runner.app
+          rm -rf build/ios/ipa-payload
+          mkdir -p build/ios/ipa-payload/Payload
+          cp -R build/ios/iphoneos/Runner.app build/ios/ipa-payload/Payload/
+          cd build/ios/ipa-payload
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent Payload ../pandamj-score-unsigned.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: pandamj-score-ios-unsigned
+          path: build/ios/pandamj-score-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
